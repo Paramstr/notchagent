@@ -1,3 +1,37 @@
+# Claude Desktop fork
+
+This fork adds **local Claude Code sessions in the Claude Desktop app** alongside
+upstream Herdr sessions. Herdr and hooks are not required for Desktop monitoring.
+
+Build with `VERSION=0.7.1 ./bundle.sh`, then open `build/NotchApp.app`.
+The display name is **Notch Agent Desktop** and its bundle ID is separate from
+upstream. Quit the original NotchAgent before opening the fork to avoid overlapping
+panels. This local build is ad-hoc signed, not Apple notarized.
+
+- Open a local Code session in Claude Desktop. Working, waiting and finished
+  sessions appear in the overview and contribute to the compact indicator.
+- Completion/attention sounds and notifications respect existing settings.
+- **Open Claude** activates the Desktop app; choose the conversation there.
+  Reply, approve/deny, mode cycling and interrupt remain in Claude Desktop.
+  No undocumented control API, synthetic keystrokes or permission bypass is used.
+- Settings → Claude Desktop can disable monitoring. No agent configuration is modified.
+- Only known status metadata in `~/Library/Logs/Claude/main.log` is parsed.
+  Prompts and tool arguments are not retained. Session/project names can appear
+  in notification previews and the optional screen saver, just as with Herdr.
+- Status is best effort, based on undocumented log messages. Observations older
+  than 30 minutes become unconfirmed; sessions expire after 24 hours, on archive,
+  or when Claude quits. Opening a finished session marks it viewed.
+- Startup history is limited to the last 2 MiB / 24 hours and does not trigger
+  sounds or notifications. Rotation and truncation reset parser state.
+- Cloud sessions, ordinary Chat and Cowork are not supported.
+- Upstream update suggestions are disabled in fork bundles so they cannot direct
+  you to overwrite Desktop support with the upstream Homebrew build.
+
+Validation: `swift test`. Desktop parser and file-tail tests use synthetic metadata
+examples (not claimed as live agent fixtures); no private logs are committed.
+
+---
+
 # NotchAgent
 
 A native macOS notch control surface for AI coding agents running under

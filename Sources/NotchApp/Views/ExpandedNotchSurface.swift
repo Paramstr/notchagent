@@ -13,7 +13,7 @@ struct ExpandedNotchSurface: View {
             ExpandedNotchHeader(
                 model: model,
                 isFocused: presentation.isFocused,
-                sessionCount: snapshot.items.count)
+                sessionCount: snapshot.items.count + model.desktop.sessions.count)
             Divider().overlay(NotchPalette.hairline)
             ZStack {
                 NotchOverviewSurface(model: model, snapshot: snapshot)
@@ -114,24 +114,25 @@ private struct NotchOverviewSurface: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 7) {
-                if model.connection == .unavailable {
+                if model.connection == .unavailable, model.desktop.sessions.isEmpty {
                     StatusBanner(
-                        text: "herdr isn't reachable. Is the server running?",
+                        text: "No Herdr connection. Local Claude Desktop Code sessions can also appear here.",
                         systemImage: "exclamationmark.triangle.fill",
                         color: NotchPalette.critical)
                 }
                 if let notice = model.jumpNotice {
                     JumpNoticeBanner(model: model, notice: notice)
                 }
+                ClaudeDesktopSection(monitor: model.desktop)
                 AttentionListView(
                     items: snapshot.items,
                     select: model.selectPane,
                     jump: model.jump)
-                if snapshot.items.isEmpty, model.connection != .unavailable {
+                if snapshot.items.isEmpty, model.desktop.sessions.isEmpty, model.connection != .unavailable {
                     ContentUnavailableView(
                         "No agents",
                         systemImage: "terminal",
-                        description: Text("Start an agent under herdr and it will appear here."))
+                        description: Text("Start a local Code session in Claude Desktop or an agent under Herdr."))
                     .foregroundStyle(NotchPalette.secondaryText)
                     .frame(maxWidth: .infinity, minHeight: 140)
                 }

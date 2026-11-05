@@ -23,6 +23,13 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("Claude Desktop") {
+                Toggle("Monitor local Code sessions", isOn: $settings.claudeDesktopEnabled)
+                    .onChange(of: settings.claudeDesktopEnabled) { model.desktopSettingsChanged() }
+                Text("Reads local Claude Desktop status logs. No hooks or Herdr required. Open Claude to reply or approve; cloud, Chat and Cowork sessions are not supported.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             SessionsSection(
                 settings: settings,
                 registry: registry,

@@ -166,3 +166,12 @@ NotchApp UI (NSPanel + SwiftUI)  /  notchctl CLI
 - Swift 6 strict concurrency: UI, `StateStore`, and `InteractionCoordinator` are
   `@MainActor`. A CLI/loop that touches them should live inside one `@MainActor`
   container (see `notchctl`).
+
+## Claude Desktop fork
+
+`Sources/NotchApp/Desktop/` owns read-only Desktop log observation. It is deliberately
+separate from Herdr `AgentRef` control routing. Desktop metadata can feed the
+compact rollup, overview, notifications and saver; the sole Desktop action is
+activating Claude.app. Never route a Desktop session ID to Herdr or fabricate
+approval controls from log messages. Tests are synthetic parser/transport tests,
+not live prompt captures. See the fork section of README for freshness limits.
