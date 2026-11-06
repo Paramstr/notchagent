@@ -23,6 +23,13 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("Desktop agents") {
+                Toggle("Monitor Claude and Codex chats", isOn: $settings.claudeDesktopEnabled)
+                    .onChange(of: settings.claudeDesktopEnabled) { model.desktopSettingsChanged() }
+                Text("Reads local Claude Code and Codex chats, titles and latest assistant messages. No hooks required. Click a card to reply in its app. Claude Chat, Cowork and remote sessions are not supported.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             SessionsSection(
                 settings: settings,
                 registry: registry,

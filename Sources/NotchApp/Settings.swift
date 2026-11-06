@@ -134,6 +134,7 @@ final class Settings {
     var screenSaveStyle: ScreenSaveStyleID {
         didSet { defaults.set(screenSaveStyle.rawValue, forKey: Keys.screenSaveStyle) }
     }
+    var claudeDesktopEnabled: Bool { didSet { defaults.set(claudeDesktopEnabled, forKey: "claudeDesktopEnabled") } }
     var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Keys.launchAtLogin); LoginItem.setEnabled(launchAtLogin) } }
     var askForAccessibilityOnLaunch: Bool { didSet { defaults.set(askForAccessibilityOnLaunch, forKey: Keys.askForAccessibilityOnLaunch) } }
     var automaticUpdateChecks: Bool { didSet { defaults.set(automaticUpdateChecks, forKey: Keys.automaticUpdateChecks) } }
@@ -142,6 +143,7 @@ final class Settings {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        claudeDesktopEnabled = defaults.object(forKey: "claudeDesktopEnabled") as? Bool ?? true
         socketPathOverride = defaults.string(forKey: Keys.socketPathOverride)
         sessionName = defaults.string(forKey: Keys.sessionName)
         remoteHosts = (defaults.data(forKey: Keys.remoteHosts)

@@ -127,8 +127,8 @@ private struct CompactNotchSummary: View {
     }
 
     private var helpText: String {
-        guard let version = pendingUpdateVersion else { return "herdr agents — click to expand" }
-        return "herdr agents — NotchAgent \(version) is available"
+        guard let version = pendingUpdateVersion else { return "Coding agents — click to expand" }
+        return "Coding agents — NotchAgent \(version) is available"
     }
 
     private var accessibilityText: String {

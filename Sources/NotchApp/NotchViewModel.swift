@@ -57,6 +57,8 @@ final class NotchViewModel {
     // MARK: Live state
 
     let registry = SessionRegistry()
+    let desktop = ClaudeDesktopMonitor()
+    @ObservationIgnored private var previousDesktopSessions: [String: ClaudeDesktopSession] = [:]
     /// Confirmation targets and failures are session-scoped: every herdr server
     /// can independently own a pane named `w1:p1`.
     private(set) var interruptingAgents: Set<AgentRef> = []
@@ -195,7 +197,7 @@ final class NotchViewModel {
     }
 
     var canCycleSelectedAgentMode: Bool {
-        selectedAgentSupportsModeCycling && connection == .connected && !isActing
+        selectedAgentSupportsModeCycling && selectedRuntime?.connection == .connected && !isActing
     }
 
     /// Per-pane draft projection. Switching panes never overwrites another draft.
@@ -271,6 +273,7 @@ final class NotchViewModel {
     /// unreachable named session must not blank out a working notch.
     var connection: Connection {
         let states = registry.runtimes.map(\.connection)
+        if !desktop.sessions.isEmpty { return .connected }
         if states.contains(.connected) { return .connected }
         if states.contains(.connecting) || states.isEmpty { return .connecting }
         return .unavailable
@@ -307,7 +310,7 @@ final class NotchViewModel {
 
     /// Worst status across all agents in all sessions — drives the pill color.
     var overallStatus: RollupStatus {
-        registry.runtimes.map(\.store.overallStatus)
+        (registry.runtimes.map(\.store.overallStatus) + desktop.sessions.map(\.status))
             .max(by: { $0.precedence < $1.precedence }) ?? .unknown
     }
 
@@ -322,7 +325,7 @@ final class NotchViewModel {
         }
         return CompactSignalSnapshot(
             status: status,
-            count: matchingCount > 0 ? matchingCount : agentCount,
+            count: matchingCount + desktop.sessions.filter { $0.status == status }.count,
             enteredAt: compactSignalTracker.status == status
                 ? compactSignalTracker.enteredAt : nil,
             triggerRevision: compactSignalTracker.triggerRevision)
@@ -330,22 +333,23 @@ final class NotchViewModel {
 
     /// Count of agents needing attention (blocked) for the pill badge.
     var attentionCount: Int {
-        registry.runtimes.reduce(0) { $0 + $1.blockedPaneCount }
+        registry.runtimes.reduce(0) { $0 + $1.blockedPaneCount } + desktop.sessions.filter { $0.status == .blocked }.count
     }
 
     /// Total agent count (panes with a known agent) for the pill.
     var agentCount: Int {
-        registry.runtimes.reduce(0) { $0 + $1.agentCount }
+        registry.runtimes.reduce(0) { $0 + $1.agentCount } + desktop.sessions.count
     }
 
     var hasAttention: Bool { attentionCount > 0 || overallStatus == .blocked }
-    var hasWorkingPanes: Bool { registry.runtimes.contains { $0.hasWorkingPanes } }
+    var hasWorkingPanes: Bool { registry.runtimes.contains { $0.hasWorkingPanes } || desktop.sessions.contains { $0.status == .working } }
 
     /// Project/session title for the selected blocked pane, otherwise the most
     /// urgent blocked pane. Nil preserves the compact count-only idle pill.
     var pillTaskTitle: String? {
         guard hasAttention else { return nil }
         return AttentionRollupDisplay.pillTaskTitle(items: attentionItems, selected: selected)
+            ?? desktop.sessions.first(where: { $0.status == .blocked })?.displayTitle
     }
 
     var isActing: Bool { selectedRuntime?.isActing == true }
@@ -369,6 +373,7 @@ final class NotchViewModel {
     // MARK: Lifecycle
 
     func start() {
+        desktopSettingsChanged()
         registry.start(host: self)
         if let pinnedSession {
             registry.apply([pinnedSession])
@@ -401,6 +406,8 @@ final class NotchViewModel {
     }
 
     func stop() {
+        desktop.stop()
+        previousDesktopSessions = [:]
         discoveryTask?.cancel()
         discoveryTask = nil
         for task in pendingNotificationJumpTasks.values { task.cancel() }
@@ -408,6 +415,41 @@ final class NotchViewModel {
         interruptingAgents = []
         interruptErrors = [:]
         registry.stop()
+    }
+
+    func desktopSettingsChanged() {
+        if settings?.claudeDesktopEnabled ?? true {
+            desktop.start { [weak self] sessions, live in
+                self?.desktopDidChange(sessions, live: live)
+            }
+        } else {
+            desktop.stop()
+            notificationController?.removeNotifications(sessionID: ClaudeDesktopSession.notificationSessionID)
+            previousDesktopSessions = [:]
+            compactSignalTracker.observe(status: overallStatus, at: Date())
+        }
+    }
+
+    private func desktopDidChange(_ sessions: [ClaudeDesktopSession], live: Bool) {
+        let changed = sessions.filter { previousDesktopSessions[$0.id]?.status != $0.status }
+        previousDesktopSessions = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
+        let blocked = live ? changed.filter { $0.status == .blocked }.count : 0
+        let done = live ? changed.filter { $0.status == .done }.count : 0
+        compactSignalTracker.observe(status: overallStatus, newlyBlockedCount: blocked,
+                                     newlyFinishedCount: done, at: Date())
+        if live {
+            for session in changed where session.status == .blocked || session.status == .done {
+                notificationController?.post(item: session.attentionItem,
+                    kind: session.status == .blocked ? .blocked : .done)
+            }
+        }
+        notificationController?.reconcileBlocked(
+            sessionID: ClaudeDesktopSession.notificationSessionID,
+            activeRefs: Set(sessions.filter { $0.status == .blocked }.map { $0.attentionItem.ref }))
+        if blocked > 0 { soundEngine?.play(.blocked) }
+        if done > 0 { soundEngine?.play(.done) }
+        if (blocked > 0 || (done > 0 && settings?.autoExpandOnDone == true)),
+           presentation.allowsAutomaticOverview { showOverview() }
     }
 
     func notificationsSettingChanged() {
@@ -685,6 +727,10 @@ final class NotchViewModel {
     /// rebuilt the referenced runtime. Buffer only the full session-scoped ref;
     /// never fall back to a same-named pane on another server.
     func handleNotificationJump(_ ref: AgentRef) {
+        if ref.sessionID == ClaudeDesktopSession.notificationSessionID {
+            desktop.openClaude(sessionID: ref.paneID)
+            return
+        }
         if registry.runtime(for: ref) != nil {
             jump(ref)
             return
