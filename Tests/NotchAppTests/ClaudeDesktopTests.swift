@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import HerdrClient
 import Testing
 @testable import NotchApp
@@ -120,6 +121,24 @@ struct ClaudeDesktopTests {
         #expect(!sessions.isEmpty)
         // Counts only: do not disclose project names, IDs, or private log lines.
         print("Desktop live-log smoke: \(sessions.count) sessions parsed")
+    }
+
+    @Test @MainActor func desktopApplicationIdentity() {
+        #expect(ClaudeDesktopMonitor.bundleIdentifiers.contains("com.anthropic.claudefordesktop"))
+        #expect(ClaudeDesktopMonitor.bundleIdentifiers.contains("com.anthropic.claude"))
+    }
+
+    @Test @MainActor func runningDesktopSmokeWhenExplicitlyRequested() async throws {
+        guard ProcessInfo.processInfo.environment["NOTCHAGENT_DESKTOP_SMOKE"] == "1" else { return }
+        let monitor = ClaudeDesktopMonitor()
+        defer { monitor.stop() }
+        monitor.start { _, _ in }
+        for _ in 0..<50 {
+            if !monitor.sessions.isEmpty { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        #expect(!monitor.sessions.isEmpty, "Running Desktop detection and log parsing must both succeed")
+        print("Desktop monitor smoke: \(monitor.sessions.count) sessions visible")
     }
 
 }

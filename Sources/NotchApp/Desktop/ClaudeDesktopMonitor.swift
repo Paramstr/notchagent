@@ -4,6 +4,8 @@ import Observation
 @Observable
 @MainActor
 final class ClaudeDesktopMonitor {
+    static let bundleIdentifiers = ["com.anthropic.claudefordesktop", "com.anthropic.claude"]
+
     private(set) var sessions: [ClaudeDesktopSession] = []
     private(set) var message: String?
     @ObservationIgnored private var task: Task<Void, Never>?
@@ -16,7 +18,7 @@ final class ClaudeDesktopMonitor {
             while !Task.isCancelled {
                 guard let self else { return }
                 let running = NSWorkspace.shared.runningApplications.contains {
-                    $0.bundleIdentifier == "com.anthropic.claude"
+                    $0.bundleIdentifier.map(Self.bundleIdentifiers.contains) ?? false
                 }
                 if running {
                     if !wasRunning { self.reader = ClaudeDesktopLogReader() }
@@ -37,9 +39,12 @@ final class ClaudeDesktopMonitor {
                             onChange([], false)
                         }
                     }
-                } else if !self.sessions.isEmpty {
-                    self.sessions = []
-                    onChange([], false)
+                } else {
+                    self.message = "Claude Desktop is not running. Open Claude and start a local Code session."
+                    if !self.sessions.isEmpty {
+                        self.sessions = []
+                        onChange([], false)
+                    }
                 }
                 wasRunning = running
                 do { try await Task.sleep(for: .seconds(1)) } catch { return }
@@ -55,7 +60,9 @@ final class ClaudeDesktopMonitor {
 
     func openClaude(sessionID: String) {
         // No private deep link or synthetic keystrokes: app activation only.
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.anthropic.claude") else {
+        guard let url = Self.bundleIdentifiers.lazy.compactMap({
+            NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0)
+        }).first else {
             message = "Claude Desktop is not installed."
             return
         }
