@@ -37,10 +37,10 @@ struct DesktopPreviewTests {
             #expect(sqlite3_exec(db, sql, nil, nil, nil) == SQLITE_OK)
         }
         try create("state_5.sqlite", """
-            CREATE TABLE threads(id TEXT,title TEXT,cwd TEXT,updated_at INTEGER,archived INTEGER,source TEXT);
-            INSERT INTO threads VALUES('\(id)','Example chat','/tmp/project',\(timestamp),0,'vscode');
-            INSERT INTO threads VALUES('invalid','Hidden child','/tmp/project',\(timestamp),0,'subagent');
-            INSERT INTO threads VALUES('\(UUID().uuidString)','Archived','/tmp/project',\(timestamp),1,'vscode');
+            CREATE TABLE threads(id TEXT,title TEXT,cwd TEXT,updated_at INTEGER,archived INTEGER,source TEXT,name TEXT);
+            INSERT INTO threads VALUES('\(id)','Example chat','/tmp/project',\(timestamp),0,'vscode','Renamed conversation');
+            INSERT INTO threads VALUES('invalid','Hidden child','/tmp/project',\(timestamp),0,'subagent',NULL);
+            INSERT INTO threads VALUES('\(UUID().uuidString)','Archived','/tmp/project',\(timestamp),1,'vscode',NULL);
             """)
         try create("thread_history_1.sqlite", """
             CREATE TABLE thread_turns(thread_id TEXT,status TEXT,rollout_ordinal INTEGER);
@@ -51,6 +51,7 @@ struct DesktopPreviewTests {
             """)
         let sessions = try await CodexDesktopReader(root: root).read()
         #expect(sessions.count == 1)
+        #expect(sessions.first?.displayTitle == "Renamed conversation")
         #expect(sessions.first?.app == .codex)
         #expect(sessions.first?.status == .working)
         #expect(sessions.first?.preview == "Latest assistant reply")

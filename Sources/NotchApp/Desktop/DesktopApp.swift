@@ -7,6 +7,11 @@ enum DesktopApp: String, Sendable {
     @MainActor var applicationURL: URL? {
         bundleIDs.lazy.compactMap { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) }.first
     }
+    @MainActor var icon: NSImage? {
+        guard let url = applicationURL else { return nil }
+        if self == .codex, let icon = NSImage(contentsOf: url.appendingPathComponent("Contents/Resources/icon-codex-light.png")) { return icon }
+        return NSWorkspace.shared.icon(forFile: url.path)
+    }
     func chatURL(_ id: String) -> URL? {
         if self == .claude { return ClaudeDesktopNavigation.url(sessionID: id) }
         guard UUID(uuidString: id) != nil else { return nil }

@@ -8,7 +8,7 @@ actor CodexDesktopReader {
     init(root: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex")) { self.root = root }
     func read(at now: Date = Date()) throws -> [ClaudeDesktopSession] {
         let rows = try query(root.appendingPathComponent("state_5.sqlite"), sql:
-            "SELECT id,title,cwd,updated_at FROM threads WHERE archived=0 AND source='vscode' AND updated_at > \(Int(now.timeIntervalSince1970)-86400) ORDER BY updated_at DESC LIMIT 30")
+            "SELECT id,COALESCE(NULLIF(name,''),title),cwd,updated_at FROM threads WHERE archived=0 AND source='vscode' AND updated_at > \(Int(now.timeIntervalSince1970)-86400) ORDER BY updated_at DESC LIMIT 30")
         let history = root.appendingPathComponent("thread_history_1.sqlite")
         return rows.compactMap { row in
             guard row.count == 4, UUID(uuidString: row[0]) != nil, let timestamp = Double(row[3]) else { return nil }

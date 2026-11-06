@@ -13,8 +13,8 @@ struct ClaudeDesktopSection: View {
                 Button { monitor.openClaude(sessionID: session.id) } label: {
                     HStack(spacing: 10) {
                         VStack(spacing: 5) {
-                            if let url = session.app.applicationURL {
-                                Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                            if let icon = session.app.icon {
+                                Image(nsImage: icon)
                                     .resizable().frame(width: 24, height: 24)
                                     .accessibilityLabel(session.app.name)
                             } else {
@@ -27,7 +27,7 @@ struct ClaudeDesktopSection: View {
                             Text("\(session.app.name) · \(session.statusText)").font(.system(size: 10))
                                 .foregroundStyle(NotchPalette.secondaryText)
                             if let preview = session.preview {
-                                Text(preview).font(.system(size: 10)).lineLimit(2)
+                                Text(preview).font(.system(size: 10)).lineLimit(2).truncationMode(.head)
                                     .multilineTextAlignment(.leading)
                                     .foregroundStyle(NotchPalette.secondaryText)
                             }
