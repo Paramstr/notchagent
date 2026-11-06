@@ -8,6 +8,8 @@ struct ClaudeDesktopSession: Identifiable, Equatable, Sendable {
     var status: RollupStatus
     var updatedAt: Date
     var title: String? = nil
+    var app: DesktopApp = .claude
+    var preview: String? = nil
 
     var displayTitle: String { title ?? project }
 
@@ -16,7 +18,7 @@ struct ClaudeDesktopSession: Identifiable, Equatable, Sendable {
     var attentionItem: InteractionAttentionDisplayModel {
         InteractionAttentionDisplayModel(
             paneID: id, sessionID: Self.notificationSessionID,
-            sessionLabel: "Claude Desktop", taskTitle: displayTitle, agentName: "Claude Desktop",
+            sessionLabel: app.name, taskTitle: displayTitle, agentName: app.name,
             workspaceLabel: displayTitle, tabTitle: "Desktop", status: status,
             state: nil, summaryOverride: statusText, isSelected: false)
     }
@@ -24,10 +26,10 @@ struct ClaudeDesktopSession: Identifiable, Equatable, Sendable {
     var statusText: String {
         switch status {
         case .working: "Working"
-        case .blocked: "Needs your input in Claude"
+        case .blocked: "Needs your input in \(app.name)"
         case .done: "Finished"
         case .idle: "Viewed"
-        case .unknown: "Status unconfirmed — open Claude"
+        case .unknown: "Status unconfirmed — open \(app.name)"
         }
     }
 }

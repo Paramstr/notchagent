@@ -172,6 +172,6 @@ NotchApp UI (NSPanel + SwiftUI)  /  notchctl CLI
 `Sources/NotchApp/Desktop/` owns read-only Desktop log observation. It is deliberately
 separate from Herdr `AgentRef` control routing. Desktop metadata can feed the
 compact rollup, overview, notifications and saver; the sole Desktop action is
-opening a validated local session continuation link in Claude.app. Never route a Desktop session ID to Herdr or fabricate
+opening a validated local chat link in the originating Claude or Codex app. Codex databases are read-only; transcript previews exclude tools and reasoning. Never route a Desktop session ID to Herdr or fabricate
 approval controls from log messages. Tests are synthetic parser/transport tests,
 not live prompt captures. See the fork section of README for freshness limits.

@@ -132,7 +132,7 @@ private struct NotchOverviewSurface: View {
                     ContentUnavailableView(
                         "No agents",
                         systemImage: "terminal",
-                        description: Text("Start a local Code session in Claude Desktop or an agent under Herdr."))
+                        description: Text("Start a chat in Codex, a local Code session in Claude Desktop, or an agent under Herdr."))
                     .foregroundStyle(NotchPalette.secondaryText)
                     .frame(maxWidth: .infinity, minHeight: 140)
                 }

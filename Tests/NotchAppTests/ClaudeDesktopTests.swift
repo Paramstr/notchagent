@@ -139,6 +139,8 @@ struct ClaudeDesktopTests {
         }
         #expect(!monitor.sessions.isEmpty, "Running Desktop detection and log parsing must both succeed")
         #expect(monitor.sessions.contains { $0.title != nil }, "Real Desktop titles must be resolved")
+        #expect(monitor.sessions.contains { $0.app == .codex && $0.preview != nil })
+        #expect(monitor.sessions.contains { $0.app == .claude && $0.preview != nil })
         print("Desktop monitor smoke: \(monitor.sessions.count) sessions visible")
     }
 

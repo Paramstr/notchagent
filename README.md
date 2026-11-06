@@ -1,39 +1,31 @@
-# Claude Desktop fork
+# Claude and Codex Desktop fork
 
-This fork adds **local Claude Code sessions in the Claude Desktop app** alongside
-upstream Herdr sessions. Herdr and hooks are not required for Desktop monitoring.
+This fork monitors recent local Claude Code and Codex Desktop chats alongside Herdr.
+Cards show the conversation title, the original app icon, status, and the last
+240 characters of the latest available assistant message. Click anywhere on a
+card to open the exact conversation in its desktop app.
 
-Build with `VERSION=0.7.1 ./bundle.sh`, then open `build/NotchApp.app`.
-The display name is **Notch Agent Desktop** and its bundle ID is separate from
-upstream. Quit the original NotchAgent before opening the fork to avoid overlapping
-panels. This local build is ad-hoc signed, not Apple notarized.
+Codex is read through its local SQLite state/history databases in read-only mode;
+only recent, unarchived desktop threads are included, excluding subagents. Claude
+uses local status logs, session metadata and a bounded tail of its transcript.
+Tool output and reasoning are excluded from previews. No hooks are installed.
+Previews are visible in the notch; titles may also appear in notifications.
+Settings → Desktop agents disables this monitoring. Replies and approvals stay
+in the original app. Claude Chat/Cowork, cloud and remote sessions are unsupported.
+These local formats and native continuation links may change with app updates.
 
-- Open a local Code session in Claude Desktop. Working, waiting and finished
-  sessions appear in the overview and contribute to the compact indicator.
-- Completion/attention sounds and notifications respect existing settings.
-- Each row displays the conversation title from local Code session metadata.
-  Click the row or **Open chat** to navigate directly to that conversation in Claude Desktop.
-  Reply, approve/deny, mode cycling and interrupt remain in Claude Desktop.
-  Navigation uses Claude Desktop’s own `claude://code/continue?session=…` route,
-  verified against the installed app’s Spotlight handler. No synthetic keystrokes
-  or permission bypass is used.
-- Settings → Claude Desktop can disable monitoring. No agent configuration is modified.
-- Only known status metadata in `~/Library/Logs/Claude/main.log` is parsed.
-  Titles are read from `claude-code-sessions/<account>/<org>/local_<id>.json`;
-  archived sessions are hidden and metadata is never written. Prompts and tool
-  arguments are not retained. Conversation titles and project names can appear
-  in notification previews and the optional screen saver, just as with Herdr.
-- Status is best effort, based on undocumented log messages. Observations older
-  than 30 minutes become unconfirmed; sessions expire after 24 hours, on archive,
-  or when Claude quits. Opening a finished session marks it viewed.
-- Startup history is limited to the last 2 MiB / 24 hours and does not trigger
-  sounds or notifications. Rotation and truncation reset parser state.
-- Cloud sessions, ordinary Chat and Cowork are not supported.
-- Upstream update suggestions are disabled in fork bundles so they cannot direct
-  you to overwrite Desktop support with the upstream Homebrew build.
+Build with `VERSION=0.7.4 ./bundle.sh`, then open `build/NotchApp.app`.
+The fork uses bundle ID `dev.notchagent.ClaudeDesktopFork` and ad-hoc signing.
+Upstream update suggestions are disabled to avoid overwriting the fork.
 
-Validation: `swift test`. Desktop parser and file-tail tests use synthetic metadata
-examples (not claimed as live agent fixtures); no private logs are committed.
+Claude status observations expire after 24 hours and become unconfirmed after
+30 minutes. Codex includes up to 30 desktop chats updated within 24 hours, using
+its latest recorded turn state; this does not detect every approval prompt.
+Startup history does not trigger sounds. App icons come from the installed bundles.
+Native links are `claude://code/continue?session=…` and `codex://threads/…`.
+
+Validation: `swift test`; synthetic fixtures cover parser, metadata, SQL filtering,
+message previews and link validation. No private chat data is committed.
 
 ---
 

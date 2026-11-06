@@ -6,17 +6,31 @@ struct ClaudeDesktopSection: View {
 
     var body: some View {
         if !monitor.sessions.isEmpty {
-            Text("Claude Desktop")
+            Text("Desktop chats")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(NotchPalette.secondaryText)
             ForEach(monitor.sessions) { session in
                 Button { monitor.openClaude(sessionID: session.id) } label: {
                     HStack(spacing: 10) {
-                        Circle().fill(NotchPalette.status(session.status)).frame(width: 8, height: 8)
+                        VStack(spacing: 5) {
+                            if let url = session.app.applicationURL {
+                                Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                                    .resizable().frame(width: 24, height: 24)
+                                    .accessibilityLabel(session.app.name)
+                            } else {
+                                Image(systemName: "bubble.left.and.bubble.right").frame(width: 24, height: 24)
+                            }
+                            Circle().fill(NotchPalette.status(session.status)).frame(width: 6, height: 6)
+                        }
                         VStack(alignment: .leading, spacing: 3) {
                             Text(session.displayTitle).font(.system(size: 12, weight: .semibold)).lineLimit(1)
-                            Text(session.statusText).font(.system(size: 10))
+                            Text("\(session.app.name) · \(session.statusText)").font(.system(size: 10))
                                 .foregroundStyle(NotchPalette.secondaryText)
+                            if let preview = session.preview {
+                                Text(preview).font(.system(size: 10)).lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                    .foregroundStyle(NotchPalette.secondaryText)
+                            }
                             Text("\(session.project) · \(session.updatedAt.formatted(date: .omitted, time: .shortened))")
                                 .font(.system(size: 9)).foregroundStyle(NotchPalette.tertiaryText)
                         }
@@ -30,9 +44,9 @@ struct ClaudeDesktopSection: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Open chat: \(session.displayTitle)")
-                .help("Open this conversation in Claude Desktop")
+                .help("Open this conversation in \(session.app.name)")
             }
-            Text("Reply and approve in Claude Desktop. Status is inferred from local logs.")
+            Text("Reply and approve in the original app. Status and previews are read locally.")
                 .font(.system(size: 9)).foregroundStyle(NotchPalette.tertiaryText)
         }
         if let message = monitor.message {

@@ -5,6 +5,7 @@ import Foundation
 struct ClaudeDesktopMetadataReader {
     let root: URL
     private var directories: [URL] = []
+    private var previews = AssistantPreview()
     private var lastDiscovery: Date?
 
     init(root: URL = FileManager.default.homeDirectoryForCurrentUser
@@ -31,6 +32,14 @@ struct ClaudeDesktopMetadataReader {
                 if metadata.isArchived == true { return nil }
                 let title = metadata.title?.trimmingCharacters(in: .whitespacesAndNewlines)
                 result.title = title.flatMap { $0.isEmpty ? nil : String($0.prefix(500)) }
+                if let cliID = metadata.cliSessionId, UUID(uuidString: cliID) != nil,
+                   let cwd = metadata.cwd, cwd.hasPrefix("/") {
+                    let project = cwd.map { $0.isLetter || $0.isNumber || $0 == "-" ? String($0) : "-" }.joined()
+                    let transcript = FileManager.default.homeDirectoryForCurrentUser
+                        .appendingPathComponent(".claude/projects").appendingPathComponent(project)
+                        .appendingPathComponent(cliID + ".jsonl")
+                    result.preview = previews.claudeTranscript(transcript)
+                }
                 break
             }
             return result
