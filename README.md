@@ -11,12 +11,17 @@ panels. This local build is ad-hoc signed, not Apple notarized.
 - Open a local Code session in Claude Desktop. Working, waiting and finished
   sessions appear in the overview and contribute to the compact indicator.
 - Completion/attention sounds and notifications respect existing settings.
-- **Open Claude** activates the Desktop app; choose the conversation there.
+- Each row displays the conversation title from local Code session metadata.
+  Click the row or **Open chat** to navigate directly to that conversation in Claude Desktop.
   Reply, approve/deny, mode cycling and interrupt remain in Claude Desktop.
-  No undocumented control API, synthetic keystrokes or permission bypass is used.
+  Navigation uses Claude Desktop’s own `claude://code/continue?session=…` route,
+  verified against the installed app’s Spotlight handler. No synthetic keystrokes
+  or permission bypass is used.
 - Settings → Claude Desktop can disable monitoring. No agent configuration is modified.
 - Only known status metadata in `~/Library/Logs/Claude/main.log` is parsed.
-  Prompts and tool arguments are not retained. Session/project names can appear
+  Titles are read from `claude-code-sessions/<account>/<org>/local_<id>.json`;
+  archived sessions are hidden and metadata is never written. Prompts and tool
+  arguments are not retained. Conversation titles and project names can appear
   in notification previews and the optional screen saver, just as with Herdr.
 - Status is best effort, based on undocumented log messages. Observations older
   than 30 minutes become unconfirmed; sessions expire after 24 hours, on archive,

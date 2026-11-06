@@ -349,7 +349,7 @@ final class NotchViewModel {
     var pillTaskTitle: String? {
         guard hasAttention else { return nil }
         return AttentionRollupDisplay.pillTaskTitle(items: attentionItems, selected: selected)
-            ?? desktop.sessions.first(where: { $0.status == .blocked })?.project
+            ?? desktop.sessions.first(where: { $0.status == .blocked })?.displayTitle
     }
 
     var isActing: Bool { selectedRuntime?.isActing == true }

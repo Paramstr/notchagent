@@ -138,7 +138,42 @@ struct ClaudeDesktopTests {
             try await Task.sleep(for: .milliseconds(100))
         }
         #expect(!monitor.sessions.isEmpty, "Running Desktop detection and log parsing must both succeed")
+        #expect(monitor.sessions.contains { $0.title != nil }, "Real Desktop titles must be resolved")
         print("Desktop monitor smoke: \(monitor.sessions.count) sessions visible")
+    }
+
+    @Test func sessionLinksAreExactAndRejectUntrustedActions() {
+        let url = ClaudeDesktopNavigation.url(sessionID: a)
+        #expect(url?.absoluteString == "claude://code/continue?session=\(a)")
+        #expect(ClaudeDesktopNavigation.url(sessionID: "last") == nil)
+        #expect(ClaudeDesktopNavigation.url(sessionID: a + "&q=do-something") == nil)
+        #expect(ClaudeDesktopNavigation.url(sessionID: "../../other") == nil)
+    }
+
+    @Test func titlesRefreshAndArchivesAreHidden() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let directory = root.appendingPathComponent(UUID().uuidString).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let file = directory.appendingPathComponent(a + ".json")
+        func write(title: String, id: String, archived: Bool = false) throws {
+            let data = try JSONSerialization.data(withJSONObject: [
+                "sessionId": id, "title": title, "isArchived": archived,
+                "unrelatedSecret": "synthetic-ignored-value"])
+            try data.write(to: file, options: .atomic)
+        }
+        var reader = ClaudeDesktopMetadataReader(root: root)
+        let session = ClaudeDesktopSession(id: a, project: "Project", status: .done, updatedAt: now)
+        try write(title: "Fix login", id: a)
+        #expect(reader.enrich([session], at: now).first?.displayTitle == "Fix login")
+        try write(title: "Renamed chat", id: a)
+        #expect(reader.enrich([session], at: now).first?.displayTitle == "Renamed chat")
+        try write(title: "Wrong session", id: b)
+        #expect(reader.enrich([session], at: now).first?.displayTitle == "Project")
+        try write(title: "Archived chat", id: a, archived: true)
+        #expect(reader.enrich([session], at: now).isEmpty)
+        try Data("broken json".utf8).write(to: file)
+        #expect(reader.enrich([session], at: now).first?.displayTitle == "Project")
     }
 
 }

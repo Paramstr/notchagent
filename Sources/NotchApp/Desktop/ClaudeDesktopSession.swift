@@ -7,14 +7,17 @@ struct ClaudeDesktopSession: Identifiable, Equatable, Sendable {
     var project: String
     var status: RollupStatus
     var updatedAt: Date
+    var title: String? = nil
+
+    var displayTitle: String { title ?? project }
 
     static let notificationSessionID = "claude-desktop"
 
     var attentionItem: InteractionAttentionDisplayModel {
         InteractionAttentionDisplayModel(
             paneID: id, sessionID: Self.notificationSessionID,
-            sessionLabel: "Claude Desktop", taskTitle: project, agentName: "Claude Desktop",
-            workspaceLabel: project, tabTitle: "Desktop", status: status,
+            sessionLabel: "Claude Desktop", taskTitle: displayTitle, agentName: "Claude Desktop",
+            workspaceLabel: displayTitle, tabTitle: "Desktop", status: status,
             state: nil, summaryOverride: statusText, isSelected: false)
     }
 

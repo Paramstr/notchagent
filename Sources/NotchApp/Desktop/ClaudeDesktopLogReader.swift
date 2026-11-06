@@ -9,6 +9,7 @@ actor ClaudeDesktopLogReader {
     private var offset: UInt64 = 0
     private var partial = Data()
     private var state = ClaudeDesktopLogState()
+    private var metadata = ClaudeDesktopMetadataReader()
     private let maximumRead = 2 * 1024 * 1024
     private let formatter: DateFormatter
 
@@ -65,7 +66,7 @@ actor ClaudeDesktopLogReader {
         }
         if partial.count > 64 * 1024 { partial = Data() }
         state.prune(at: now)
-        return state.sessions.values.sorted {
+        return metadata.enrich(Array(state.sessions.values), at: now).sorted {
             if $0.status.precedence != $1.status.precedence { return $0.status.precedence > $1.status.precedence }
             if $0.updatedAt != $1.updatedAt { return $0.updatedAt > $1.updatedAt }
             return $0.id < $1.id

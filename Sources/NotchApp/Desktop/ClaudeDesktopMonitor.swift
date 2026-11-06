@@ -59,14 +59,25 @@ final class ClaudeDesktopMonitor {
     }
 
     func openClaude(sessionID: String) {
-        // No private deep link or synthetic keystrokes: app activation only.
-        guard let url = Self.bundleIdentifiers.lazy.compactMap({
+        guard let deepLink = ClaudeDesktopNavigation.url(sessionID: sessionID) else {
+            message = "This session cannot be opened in Claude Desktop."
+            return
+        }
+        guard let appURL = Self.bundleIdentifiers.lazy.compactMap({
             NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0)
         }).first else {
             message = "Claude Desktop is not installed."
             return
         }
-        NSWorkspace.shared.openApplication(at: url, configuration: .init())
-        Task { await reader.markViewed(sessionID) }
+        NSWorkspace.shared.open([deepLink], withApplicationAt: appURL, configuration: .init()) { [weak self] _, error in
+            Task { @MainActor in
+                guard let self else { return }
+                if error != nil {
+                    self.message = "Could not open this chat in Claude Desktop."
+                } else {
+                    await self.reader.markViewed(sessionID)
+                }
+            }
+        }
     }
 }
