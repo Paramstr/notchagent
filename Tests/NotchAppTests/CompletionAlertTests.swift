@@ -19,6 +19,22 @@ struct CompletionAlertTests {
         #expect(!Settings(defaults: defaults).briefCompletionAlerts)
     }
 
+    @Test func disabledBriefAlertsRespectOverviewPreference() {
+        let name = UUID().uuidString
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let settings = Settings(defaults: defaults)
+        settings.briefCompletionAlerts = false
+        let model = NotchViewModel()
+        model.settings = settings
+        defer { model.stop() }
+        model.completed(item("one"))
+        #expect(model.presentation == .compact)
+        settings.autoExpandOnDone = true
+        model.completed(item("two"))
+        #expect(model.presentation == .overview)
+    }
+
     @Test func queuesSingleCardsAndAutomaticallyCollapses() async throws {
         let model = NotchViewModel()
         defer { model.stop() }
