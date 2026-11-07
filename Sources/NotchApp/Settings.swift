@@ -106,6 +106,7 @@ final class Settings {
     var remoteHosts: [RemoteHostConfiguration] {
         didSet { defaults.set(try? JSONEncoder().encode(remoteHosts), forKey: Keys.remoteHosts) }
     }
+    var briefCompletionAlerts: Bool { didSet { defaults.set(briefCompletionAlerts, forKey: "briefCompletionAlerts") } }
     var autoExpandOnDone: Bool { didSet { defaults.set(autoExpandOnDone, forKey: Keys.autoExpandOnDone) } }
     var soundEnabled: Bool { didSet { defaults.set(soundEnabled, forKey: Keys.soundEnabled) } }
     var soundPack: String { didSet { defaults.set(soundPack, forKey: Keys.soundPack) } }
@@ -148,6 +149,7 @@ final class Settings {
         sessionName = defaults.string(forKey: Keys.sessionName)
         remoteHosts = (defaults.data(forKey: Keys.remoteHosts)
             .flatMap { try? JSONDecoder().decode([RemoteHostConfiguration].self, from: $0) }) ?? []
+        briefCompletionAlerts = defaults.object(forKey: "briefCompletionAlerts") as? Bool ?? true
         autoExpandOnDone = defaults.object(forKey: Keys.autoExpandOnDone) as? Bool ?? false
         soundEnabled = defaults.object(forKey: Keys.soundEnabled) as? Bool ?? true
         soundPack = defaults.string(forKey: Keys.soundPack) ?? "default"

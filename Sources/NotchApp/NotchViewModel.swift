@@ -50,7 +50,16 @@ enum FocusedPaneSurfaceKind: String, Sendable, Equatable {
 final class NotchViewModel {
     // MARK: Presentation
 
-    var presentation: NotchPresentation = .compact
+    var presentation: NotchPresentation = .compact {
+        didSet {
+            if oldValue == .completion, presentation != .completion { cancelCompletionAlerts() }
+        }
+    }
+    var completionAlert: InteractionAttentionDisplayModel?
+    var recentCompletions: [AgentRef: Date] = [:]
+    @ObservationIgnored private var completionQueue: [InteractionAttentionDisplayModel] = []
+    @ObservationIgnored private var completionTask: Task<Void, Never>?
+    @ObservationIgnored private var completionHovered = false
     var isExpanded: Bool { presentation.isExpanded }
     private(set) var isScreenSaveVisible = false
 
@@ -406,6 +415,7 @@ final class NotchViewModel {
     }
 
     func stop() {
+        cancelCompletionAlerts()
         desktop.stop()
         previousDesktopSessions = [:]
         discoveryTask?.cancel()
@@ -423,6 +433,7 @@ final class NotchViewModel {
                 self?.desktopDidChange(sessions, live: live)
             }
         } else {
+            cancelCompletionAlerts()
             desktop.stop()
             notificationController?.removeNotifications(sessionID: ClaudeDesktopSession.notificationSessionID)
             previousDesktopSessions = [:]
@@ -448,8 +459,12 @@ final class NotchViewModel {
             activeRefs: Set(sessions.filter { $0.status == .blocked }.map { $0.attentionItem.ref }))
         if blocked > 0 { soundEngine?.play(.blocked) }
         if done > 0 { soundEngine?.play(.done) }
-        if (blocked > 0 || (done > 0 && settings?.autoExpandOnDone == true)),
-           presentation.allowsAutomaticOverview { showOverview() }
+        if blocked > 0, presentation.allowsAutomaticOverview { showOverview() }
+        if live {
+            for session in changed where session.status == .done {
+                completed(session.attentionItem)
+            }
+        }
     }
 
     func notificationsSettingChanged() {
@@ -512,13 +527,65 @@ final class NotchViewModel {
         }
     }
 
+    func completed(_ item: InteractionAttentionDisplayModel, at now: Date = Date()) {
+        recentCompletions = recentCompletions.filter { now.timeIntervalSince($0.value) < 120 }
+        recentCompletions[item.ref] = now
+        guard settings?.briefCompletionAlerts ?? true else {
+            if settings?.autoExpandOnDone == true, presentation.allowsAutomaticOverview { showOverview() }
+            return
+        }
+        guard !isScreenSaveVisible, presentation == .compact || presentation == .completion else { return }
+        guard completionAlert?.ref != item.ref, !completionQueue.contains(where: { $0.ref == item.ref }) else { return }
+        completionQueue.append(item)
+        if presentation != .completion { showNextCompletion() }
+    }
+
+    private func showNextCompletion() {
+        guard !completionQueue.isEmpty else { collapse(); return }
+        completionAlert = completionQueue.removeFirst()
+        presentation = .completion
+        scheduleCompletionDismissal()
+    }
+
+    private func scheduleCompletionDismissal() {
+        completionTask?.cancel()
+        completionTask = Task { @MainActor [weak self] in
+            // Allow the existing 340ms spring to settle, then one second to read.
+            do { try await Task.sleep(for: .milliseconds(1340)) } catch { return }
+            guard let self, self.presentation == .completion, !self.completionHovered else { return }
+            self.showNextCompletion()
+        }
+    }
+
+    func hoverCompletion(_ hovering: Bool) {
+        completionHovered = hovering
+        if hovering { completionTask?.cancel() }
+        else if presentation == .completion { scheduleCompletionDismissal() }
+    }
+
+    func openCompletion() {
+        guard let ref = completionAlert?.ref else { return }
+        collapse()
+        handleNotificationJump(ref)
+    }
+
+    private func cancelCompletionAlerts() {
+        completionTask?.cancel()
+        completionTask = nil
+        completionQueue = []
+        completionHovered = false
+        completionAlert = nil
+    }
+
     func toggle() { isExpanded ? collapse() : showOverview() }
     func expand() { showOverview() }
     func showOverview() {
+        cancelCompletionAlerts()
         clearAllSelections()
         presentation = .overview
     }
     func collapse() {
+        cancelCompletionAlerts()
         presentation = .compact
         registry.refreshEventSubscriptionPolicies()
     }
@@ -862,7 +929,7 @@ extension NotchViewModel: SessionRuntimeHost {
         if isScreenSaveVisible { return true }
         if registry.runtimes.count <= 1 { return true }
         switch presentation {
-        case .compact:
+        case .compact, .completion:
             return false
         case .overview:
             return true
@@ -914,6 +981,7 @@ extension NotchViewModel: SessionRuntimeHost {
             let ref = AgentRef(sessionID: runtime.sessionID, paneID: paneID)
             if let item = rows[ref] {
                 notificationController?.post(item: item, kind: .done)
+                completed(item)
             }
         }
         notificationController?.reconcileBlocked(
@@ -926,11 +994,6 @@ extension NotchViewModel: SessionRuntimeHost {
            let target = runtime.interactions.attentionOrder.first {
             await surfaceBlockedPane(
                 AgentRef(sessionID: runtime.sessionID, paneID: target))
-        }
-        if !transitions.newlyFinishedPaneIDs.isEmpty,
-           settings?.autoExpandOnDone ?? false,
-           presentation.allowsAutomaticOverview {
-            showOverview()
         }
         // If an AUTO-surfaced blocked pane resolved (no longer blocked), clear the
         // card. But leave a MANUALLY-opened pane alone — the user opened it

@@ -36,7 +36,10 @@ struct PlaceholderNotchView: View {
                 .scaleEffect(isCompact ? 1 : 0.92, anchor: .top)
                 .allowsHitTesting(isCompact)
 
-            if surface.presentation.isExpanded {
+            if surface.presentation == .completion {
+                CompletionAlertView(model: model, topInset: surface.geometry.topContentInset)
+                    .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+            } else if surface.presentation.isExpanded {
                 TimelineView(.periodic(from: .now, by: 15)) { context in
                     let snapshot = model.displaySnapshot(at: context.date)
                     ExpandedNotchSurface(

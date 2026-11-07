@@ -2,6 +2,7 @@ import HerdrClient
 import SwiftUI
 
 struct ClaudeDesktopSection: View {
+    var recentCompletions: [AgentRef: Date] = [:]
     @Bindable var monitor: ClaudeDesktopMonitor
 
     var body: some View {
@@ -42,6 +43,7 @@ struct ClaudeDesktopSection: View {
                     .background(RoundedRectangle(cornerRadius: 9).fill(NotchPalette.elevated))
                     .contentShape(Rectangle())
                 }
+                .modifier(RecentCompletionGlow(completedAt: recentCompletions[session.attentionItem.ref]))
                 .buttonStyle(.plain)
                 .accessibilityLabel("Open chat: \(session.displayTitle)")
                 .help("Open this conversation in \(session.app.name)")

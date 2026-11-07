@@ -1,5 +1,12 @@
 # Claude and Codex Desktop fork
 
+Completion pings default to a single clickable card: it expands smoothly, stays
+for one second after settling, then collapses. Hover pauses dismissal; queued
+completions appear one at a time. Manually opened views stay put. Cards for agents
+that completed in the last two minutes carry a soft yellow outline that fades.
+Settings → Brief completion alerts toggles this behavior; disabling it exposes
+the previous full-overview option.
+
 This fork monitors recent local Claude Code and Codex Desktop chats alongside Herdr.
 Cards show the conversation title, the original app icon, status, and the last
 240 characters of the latest available assistant message. Click anywhere on a

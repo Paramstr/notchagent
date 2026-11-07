@@ -123,9 +123,10 @@ private struct NotchOverviewSurface: View {
                 if let notice = model.jumpNotice {
                     JumpNoticeBanner(model: model, notice: notice)
                 }
-                ClaudeDesktopSection(monitor: model.desktop)
+                ClaudeDesktopSection(recentCompletions: model.recentCompletions, monitor: model.desktop)
                 AttentionListView(
                     items: snapshot.items,
+                    recentCompletions: model.recentCompletions,
                     select: model.selectPane,
                     jump: model.jump)
                 if snapshot.items.isEmpty, model.desktop.sessions.isEmpty, model.connection != .unavailable {

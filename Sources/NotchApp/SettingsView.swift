@@ -42,7 +42,15 @@ struct SettingsView: View {
             HerdrDiagnosticsSection(registry: registry)
 
             Section("Behavior") {
-                Toggle("Auto-expand when done", isOn: $settings.autoExpandOnDone)
+                Toggle("Brief completion alerts", isOn: $settings.briefCompletionAlerts)
+                    .onChange(of: settings.briefCompletionAlerts) {
+                        if model.presentation == .completion { model.collapse() }
+                    }
+                Text("Show only the finished agent for one second. Hover to keep it open; click to open its chat. Recent completions glow yellow for two minutes.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if !settings.briefCompletionAlerts {
+                    Toggle("Show all agents when done", isOn: $settings.autoExpandOnDone)
+                }
                 Toggle("Enable sounds", isOn: $settings.soundEnabled)
                 Toggle("Agent notifications", isOn: $settings.notificationsEnabled)
                     .onChange(of: settings.notificationsEnabled) {
