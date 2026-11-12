@@ -1,3 +1,41 @@
+# Claude and Codex Desktop fork
+
+Completion pings default to a single clickable card: it expands smoothly, stays
+for three seconds after settling, then collapses. Hover pauses dismissal; queued
+completions appear one at a time. Manually opened views stay put. Cards for agents
+that completed in the last two minutes carry a soft yellow outline that fades.
+Settings → Brief completion alerts toggles this behavior; disabling it exposes
+the previous full-overview option.
+
+This fork monitors recent local Claude Code and Codex Desktop chats alongside Herdr.
+Cards show the conversation title, the original app icon, status, and the last
+240 characters of the latest available assistant message. Click anywhere on a
+card to open the exact conversation in its desktop app.
+
+Codex is read through its local SQLite state/history databases in read-only mode;
+only recent, unarchived desktop threads are included, excluding subagents. Claude
+uses local status logs, session metadata and a bounded tail of its transcript.
+Tool output and reasoning are excluded from previews. No hooks are installed.
+Previews are visible in the notch; titles may also appear in notifications.
+Settings → Desktop agents disables this monitoring. Replies and approvals stay
+in the original app. Claude Chat/Cowork, cloud and remote sessions are unsupported.
+These local formats and native continuation links may change with app updates.
+
+Build with `VERSION=0.7.4 ./bundle.sh`, then open `build/NotchApp.app`.
+The fork uses bundle ID `dev.notchagent.ClaudeDesktopFork` and ad-hoc signing.
+Upstream update suggestions are disabled to avoid overwriting the fork.
+
+Claude status observations expire after 24 hours and become unconfirmed after
+30 minutes. Codex includes up to 30 desktop chats updated within 24 hours, using
+its latest recorded turn state; this does not detect every approval prompt.
+Startup history does not trigger sounds. App icons come from the installed bundles.
+Native links are `claude://code/continue?session=…` and `codex://threads/…`.
+
+Validation: `swift test`; synthetic fixtures cover parser, metadata, SQL filtering,
+message previews and link validation. No private chat data is committed.
+
+---
+
 # NotchAgent
 
 A native macOS notch control surface for AI coding agents running under

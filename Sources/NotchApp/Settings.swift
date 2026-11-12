@@ -106,6 +106,7 @@ final class Settings {
     var remoteHosts: [RemoteHostConfiguration] {
         didSet { defaults.set(try? JSONEncoder().encode(remoteHosts), forKey: Keys.remoteHosts) }
     }
+    var briefCompletionAlerts: Bool { didSet { defaults.set(briefCompletionAlerts, forKey: "briefCompletionAlerts") } }
     var autoExpandOnDone: Bool { didSet { defaults.set(autoExpandOnDone, forKey: Keys.autoExpandOnDone) } }
     var soundEnabled: Bool { didSet { defaults.set(soundEnabled, forKey: Keys.soundEnabled) } }
     var soundPack: String { didSet { defaults.set(soundPack, forKey: Keys.soundPack) } }
@@ -134,6 +135,7 @@ final class Settings {
     var screenSaveStyle: ScreenSaveStyleID {
         didSet { defaults.set(screenSaveStyle.rawValue, forKey: Keys.screenSaveStyle) }
     }
+    var claudeDesktopEnabled: Bool { didSet { defaults.set(claudeDesktopEnabled, forKey: "claudeDesktopEnabled") } }
     var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Keys.launchAtLogin); LoginItem.setEnabled(launchAtLogin) } }
     var askForAccessibilityOnLaunch: Bool { didSet { defaults.set(askForAccessibilityOnLaunch, forKey: Keys.askForAccessibilityOnLaunch) } }
     var automaticUpdateChecks: Bool { didSet { defaults.set(automaticUpdateChecks, forKey: Keys.automaticUpdateChecks) } }
@@ -142,10 +144,12 @@ final class Settings {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        claudeDesktopEnabled = defaults.object(forKey: "claudeDesktopEnabled") as? Bool ?? true
         socketPathOverride = defaults.string(forKey: Keys.socketPathOverride)
         sessionName = defaults.string(forKey: Keys.sessionName)
         remoteHosts = (defaults.data(forKey: Keys.remoteHosts)
             .flatMap { try? JSONDecoder().decode([RemoteHostConfiguration].self, from: $0) }) ?? []
+        briefCompletionAlerts = defaults.object(forKey: "briefCompletionAlerts") as? Bool ?? true
         autoExpandOnDone = defaults.object(forKey: Keys.autoExpandOnDone) as? Bool ?? false
         soundEnabled = defaults.object(forKey: Keys.soundEnabled) as? Bool ?? true
         soundPack = defaults.string(forKey: Keys.soundPack) ?? "default"

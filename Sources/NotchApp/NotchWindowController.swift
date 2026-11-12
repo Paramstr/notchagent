@@ -220,6 +220,8 @@ final class NotchWindowController {
         switch target {
         case .compact:
             break
+        case .completion:
+            surfaceState.prepareCompletion()
         case .overview:
             let bannerCount = (viewModel.connection == .unavailable ? 1 : 0)
                 + (viewModel.accessibilityMissing ? 1 : 0)

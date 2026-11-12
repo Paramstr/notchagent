@@ -50,13 +50,24 @@ enum FocusedPaneSurfaceKind: String, Sendable, Equatable {
 final class NotchViewModel {
     // MARK: Presentation
 
-    var presentation: NotchPresentation = .compact
+    var presentation: NotchPresentation = .compact {
+        didSet {
+            if oldValue == .completion, presentation != .completion { cancelCompletionAlerts() }
+        }
+    }
+    var completionAlert: InteractionAttentionDisplayModel?
+    var recentCompletions: [AgentRef: Date] = [:]
+    @ObservationIgnored private var completionQueue: [InteractionAttentionDisplayModel] = []
+    @ObservationIgnored private var completionTask: Task<Void, Never>?
+    @ObservationIgnored private var completionHovered = false
     var isExpanded: Bool { presentation.isExpanded }
     private(set) var isScreenSaveVisible = false
 
     // MARK: Live state
 
     let registry = SessionRegistry()
+    let desktop = ClaudeDesktopMonitor()
+    @ObservationIgnored private var previousDesktopSessions: [String: ClaudeDesktopSession] = [:]
     /// Confirmation targets and failures are session-scoped: every herdr server
     /// can independently own a pane named `w1:p1`.
     private(set) var interruptingAgents: Set<AgentRef> = []
@@ -195,7 +206,7 @@ final class NotchViewModel {
     }
 
     var canCycleSelectedAgentMode: Bool {
-        selectedAgentSupportsModeCycling && connection == .connected && !isActing
+        selectedAgentSupportsModeCycling && selectedRuntime?.connection == .connected && !isActing
     }
 
     /// Per-pane draft projection. Switching panes never overwrites another draft.
@@ -271,6 +282,7 @@ final class NotchViewModel {
     /// unreachable named session must not blank out a working notch.
     var connection: Connection {
         let states = registry.runtimes.map(\.connection)
+        if !desktop.sessions.isEmpty { return .connected }
         if states.contains(.connected) { return .connected }
         if states.contains(.connecting) || states.isEmpty { return .connecting }
         return .unavailable
@@ -307,7 +319,7 @@ final class NotchViewModel {
 
     /// Worst status across all agents in all sessions — drives the pill color.
     var overallStatus: RollupStatus {
-        registry.runtimes.map(\.store.overallStatus)
+        (registry.runtimes.map(\.store.overallStatus) + desktop.sessions.map(\.status))
             .max(by: { $0.precedence < $1.precedence }) ?? .unknown
     }
 
@@ -322,7 +334,7 @@ final class NotchViewModel {
         }
         return CompactSignalSnapshot(
             status: status,
-            count: matchingCount > 0 ? matchingCount : agentCount,
+            count: matchingCount + desktop.sessions.filter { $0.status == status }.count,
             enteredAt: compactSignalTracker.status == status
                 ? compactSignalTracker.enteredAt : nil,
             triggerRevision: compactSignalTracker.triggerRevision)
@@ -330,22 +342,23 @@ final class NotchViewModel {
 
     /// Count of agents needing attention (blocked) for the pill badge.
     var attentionCount: Int {
-        registry.runtimes.reduce(0) { $0 + $1.blockedPaneCount }
+        registry.runtimes.reduce(0) { $0 + $1.blockedPaneCount } + desktop.sessions.filter { $0.status == .blocked }.count
     }
 
     /// Total agent count (panes with a known agent) for the pill.
     var agentCount: Int {
-        registry.runtimes.reduce(0) { $0 + $1.agentCount }
+        registry.runtimes.reduce(0) { $0 + $1.agentCount } + desktop.sessions.count
     }
 
     var hasAttention: Bool { attentionCount > 0 || overallStatus == .blocked }
-    var hasWorkingPanes: Bool { registry.runtimes.contains { $0.hasWorkingPanes } }
+    var hasWorkingPanes: Bool { registry.runtimes.contains { $0.hasWorkingPanes } || desktop.sessions.contains { $0.status == .working } }
 
     /// Project/session title for the selected blocked pane, otherwise the most
     /// urgent blocked pane. Nil preserves the compact count-only idle pill.
     var pillTaskTitle: String? {
         guard hasAttention else { return nil }
         return AttentionRollupDisplay.pillTaskTitle(items: attentionItems, selected: selected)
+            ?? desktop.sessions.first(where: { $0.status == .blocked })?.displayTitle
     }
 
     var isActing: Bool { selectedRuntime?.isActing == true }
@@ -369,6 +382,7 @@ final class NotchViewModel {
     // MARK: Lifecycle
 
     func start() {
+        desktopSettingsChanged()
         registry.start(host: self)
         if let pinnedSession {
             registry.apply([pinnedSession])
@@ -401,6 +415,9 @@ final class NotchViewModel {
     }
 
     func stop() {
+        cancelCompletionAlerts()
+        desktop.stop()
+        previousDesktopSessions = [:]
         discoveryTask?.cancel()
         discoveryTask = nil
         for task in pendingNotificationJumpTasks.values { task.cancel() }
@@ -408,6 +425,46 @@ final class NotchViewModel {
         interruptingAgents = []
         interruptErrors = [:]
         registry.stop()
+    }
+
+    func desktopSettingsChanged() {
+        if settings?.claudeDesktopEnabled ?? true {
+            desktop.start { [weak self] sessions, live in
+                self?.desktopDidChange(sessions, live: live)
+            }
+        } else {
+            cancelCompletionAlerts()
+            desktop.stop()
+            notificationController?.removeNotifications(sessionID: ClaudeDesktopSession.notificationSessionID)
+            previousDesktopSessions = [:]
+            compactSignalTracker.observe(status: overallStatus, at: Date())
+        }
+    }
+
+    private func desktopDidChange(_ sessions: [ClaudeDesktopSession], live: Bool) {
+        let changed = sessions.filter { previousDesktopSessions[$0.id]?.status != $0.status }
+        previousDesktopSessions = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
+        let blocked = live ? changed.filter { $0.status == .blocked }.count : 0
+        let done = live ? changed.filter { $0.status == .done }.count : 0
+        compactSignalTracker.observe(status: overallStatus, newlyBlockedCount: blocked,
+                                     newlyFinishedCount: done, at: Date())
+        if live {
+            for session in changed where session.status == .blocked || session.status == .done {
+                notificationController?.post(item: session.attentionItem,
+                    kind: session.status == .blocked ? .blocked : .done)
+            }
+        }
+        notificationController?.reconcileBlocked(
+            sessionID: ClaudeDesktopSession.notificationSessionID,
+            activeRefs: Set(sessions.filter { $0.status == .blocked }.map { $0.attentionItem.ref }))
+        if blocked > 0 { soundEngine?.play(.blocked) }
+        if done > 0 { soundEngine?.play(.done) }
+        if blocked > 0, presentation.allowsAutomaticOverview { showOverview() }
+        if live {
+            for session in changed where session.status == .done {
+                completed(session.attentionItem)
+            }
+        }
     }
 
     func notificationsSettingChanged() {
@@ -470,13 +527,65 @@ final class NotchViewModel {
         }
     }
 
+    func completed(_ item: InteractionAttentionDisplayModel, at now: Date = Date()) {
+        recentCompletions = recentCompletions.filter { now.timeIntervalSince($0.value) < 120 }
+        recentCompletions[item.ref] = now
+        guard settings?.briefCompletionAlerts ?? true else {
+            if settings?.autoExpandOnDone == true, presentation.allowsAutomaticOverview { showOverview() }
+            return
+        }
+        guard !isScreenSaveVisible, presentation == .compact || presentation == .completion else { return }
+        guard completionAlert?.ref != item.ref, !completionQueue.contains(where: { $0.ref == item.ref }) else { return }
+        completionQueue.append(item)
+        if presentation != .completion { showNextCompletion() }
+    }
+
+    private func showNextCompletion() {
+        guard !completionQueue.isEmpty else { collapse(); return }
+        completionAlert = completionQueue.removeFirst()
+        presentation = .completion
+        scheduleCompletionDismissal()
+    }
+
+    private func scheduleCompletionDismissal() {
+        completionTask?.cancel()
+        completionTask = Task { @MainActor [weak self] in
+            // Allow the existing 340ms spring to settle, then three seconds to read.
+            do { try await Task.sleep(for: .milliseconds(3340)) } catch { return }
+            guard let self, self.presentation == .completion, !self.completionHovered else { return }
+            self.showNextCompletion()
+        }
+    }
+
+    func hoverCompletion(_ hovering: Bool) {
+        completionHovered = hovering
+        if hovering { completionTask?.cancel() }
+        else if presentation == .completion { scheduleCompletionDismissal() }
+    }
+
+    func openCompletion() {
+        guard let ref = completionAlert?.ref else { return }
+        collapse()
+        handleNotificationJump(ref)
+    }
+
+    private func cancelCompletionAlerts() {
+        completionTask?.cancel()
+        completionTask = nil
+        completionQueue = []
+        completionHovered = false
+        completionAlert = nil
+    }
+
     func toggle() { isExpanded ? collapse() : showOverview() }
     func expand() { showOverview() }
     func showOverview() {
+        cancelCompletionAlerts()
         clearAllSelections()
         presentation = .overview
     }
     func collapse() {
+        cancelCompletionAlerts()
         presentation = .compact
         registry.refreshEventSubscriptionPolicies()
     }
@@ -685,6 +794,10 @@ final class NotchViewModel {
     /// rebuilt the referenced runtime. Buffer only the full session-scoped ref;
     /// never fall back to a same-named pane on another server.
     func handleNotificationJump(_ ref: AgentRef) {
+        if ref.sessionID == ClaudeDesktopSession.notificationSessionID {
+            desktop.openClaude(sessionID: ref.paneID)
+            return
+        }
         if registry.runtime(for: ref) != nil {
             jump(ref)
             return
@@ -816,7 +929,7 @@ extension NotchViewModel: SessionRuntimeHost {
         if isScreenSaveVisible { return true }
         if registry.runtimes.count <= 1 { return true }
         switch presentation {
-        case .compact:
+        case .compact, .completion:
             return false
         case .overview:
             return true
@@ -868,6 +981,7 @@ extension NotchViewModel: SessionRuntimeHost {
             let ref = AgentRef(sessionID: runtime.sessionID, paneID: paneID)
             if let item = rows[ref] {
                 notificationController?.post(item: item, kind: .done)
+                completed(item)
             }
         }
         notificationController?.reconcileBlocked(
@@ -880,11 +994,6 @@ extension NotchViewModel: SessionRuntimeHost {
            let target = runtime.interactions.attentionOrder.first {
             await surfaceBlockedPane(
                 AgentRef(sessionID: runtime.sessionID, paneID: target))
-        }
-        if !transitions.newlyFinishedPaneIDs.isEmpty,
-           settings?.autoExpandOnDone ?? false,
-           presentation.allowsAutomaticOverview {
-            showOverview()
         }
         // If an AUTO-surfaced blocked pane resolved (no longer blocked), clear the
         // card. But leave a MANUALLY-opened pane alone — the user opened it

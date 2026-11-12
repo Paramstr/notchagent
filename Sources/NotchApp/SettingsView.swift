@@ -23,6 +23,13 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("Desktop agents") {
+                Toggle("Monitor Claude and Codex chats", isOn: $settings.claudeDesktopEnabled)
+                    .onChange(of: settings.claudeDesktopEnabled) { model.desktopSettingsChanged() }
+                Text("Reads local Claude Code and Codex chats, titles and latest assistant messages. No hooks required. Click a card to reply in its app. Claude Chat, Cowork and remote sessions are not supported.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             SessionsSection(
                 settings: settings,
                 registry: registry,
@@ -35,7 +42,15 @@ struct SettingsView: View {
             HerdrDiagnosticsSection(registry: registry)
 
             Section("Behavior") {
-                Toggle("Auto-expand when done", isOn: $settings.autoExpandOnDone)
+                Toggle("Brief completion alerts", isOn: $settings.briefCompletionAlerts)
+                    .onChange(of: settings.briefCompletionAlerts) {
+                        if model.presentation == .completion { model.collapse() }
+                    }
+                Text("Show only the finished agent for three seconds. Hover to keep it open; click to open its chat. Recent completions glow yellow for two minutes.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if !settings.briefCompletionAlerts {
+                    Toggle("Show all agents when done", isOn: $settings.autoExpandOnDone)
+                }
                 Toggle("Enable sounds", isOn: $settings.soundEnabled)
                 Toggle("Agent notifications", isOn: $settings.notificationsEnabled)
                     .onChange(of: settings.notificationsEnabled) {
