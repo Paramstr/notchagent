@@ -17,13 +17,16 @@ struct CompletionAlertView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("\(item.agentName) finished").font(.system(size: 10, weight: .medium)).foregroundStyle(.yellow)
                         Text(item.title).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                            .foregroundStyle(NotchPalette.primaryText)
                         if let preview = model.desktop.sessions.first(where: { $0.attentionItem.ref == item.ref })?.preview {
                             Text(preview).font(.system(size: 11)).lineLimit(2).truncationMode(.head)
                                 .foregroundStyle(NotchPalette.secondaryText)
                         }
                     }
                     Spacer(minLength: 0)
-                    Image(systemName: "arrow.up.forward").foregroundStyle(NotchPalette.secondaryText)
+                    if let completedAt = model.recentCompletions[item.ref] {
+                        ElapsedActivityLabel(since: completedAt)
+                    }
                 }
                 .multilineTextAlignment(.leading)
                 .padding(14)

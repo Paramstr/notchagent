@@ -46,7 +46,7 @@ struct SettingsView: View {
                     .onChange(of: settings.briefCompletionAlerts) {
                         if model.presentation == .completion { model.collapse() }
                     }
-                Text("Show only the finished agent for one second. Hover to keep it open; click to open its chat. Recent completions glow yellow for two minutes.")
+                Text("Show only the finished agent for three seconds. Hover to keep it open; click to open its chat. Recent completions glow yellow for two minutes.")
                     .font(.caption).foregroundStyle(.secondary)
                 if !settings.briefCompletionAlerts {
                     Toggle("Show all agents when done", isOn: $settings.autoExpandOnDone)

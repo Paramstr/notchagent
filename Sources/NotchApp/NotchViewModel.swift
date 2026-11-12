@@ -550,8 +550,8 @@ final class NotchViewModel {
     private func scheduleCompletionDismissal() {
         completionTask?.cancel()
         completionTask = Task { @MainActor [weak self] in
-            // Allow the existing 340ms spring to settle, then one second to read.
-            do { try await Task.sleep(for: .milliseconds(1340)) } catch { return }
+            // Allow the existing 340ms spring to settle, then three seconds to read.
+            do { try await Task.sleep(for: .milliseconds(3340)) } catch { return }
             guard let self, self.presentation == .completion, !self.completionHovered else { return }
             self.showNextCompletion()
         }

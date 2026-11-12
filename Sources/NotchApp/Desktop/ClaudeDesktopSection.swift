@@ -25,6 +25,7 @@ struct ClaudeDesktopSection: View {
                         }
                         VStack(alignment: .leading, spacing: 3) {
                             Text(session.displayTitle).font(.system(size: 12, weight: .semibold)).lineLimit(1)
+                                .foregroundStyle(NotchPalette.primaryText)
                             Text("\(session.app.name) · \(session.statusText)").font(.system(size: 10))
                                 .foregroundStyle(NotchPalette.secondaryText)
                             if let preview = session.preview {
@@ -36,8 +37,9 @@ struct ClaudeDesktopSection: View {
                                 .font(.system(size: 9)).foregroundStyle(NotchPalette.tertiaryText)
                         }
                         Spacer()
-                        Label("Open chat", systemImage: "arrow.up.forward")
-                            .font(.system(size: 11)).foregroundStyle(NotchPalette.action)
+                        ElapsedActivityLabel(since: session.status == .done
+                            ? recentCompletions[session.attentionItem.ref] ?? session.updatedAt
+                            : session.updatedAt)
                     }
                     .padding(10)
                     .background(RoundedRectangle(cornerRadius: 9).fill(NotchPalette.elevated))
