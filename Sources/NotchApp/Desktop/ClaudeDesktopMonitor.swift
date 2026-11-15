@@ -6,6 +6,7 @@ import Observation
 final class ClaudeDesktopMonitor {
     nonisolated static let bundleIdentifiers = ["com.anthropic.claudefordesktop", "com.anthropic.claude"]
 
+    let capy = CapyMonitor()
     private(set) var sessions: [ClaudeDesktopSession] = []
     private(set) var message: String?
     @ObservationIgnored private var task: Task<Void, Never>?
@@ -15,7 +16,9 @@ final class ClaudeDesktopMonitor {
 
     func start(onChange: @escaping @MainActor ([ClaudeDesktopSession], Bool) -> Void) {
         guard task == nil else { return }
+        capy.start()
         task = Task { [weak self] in
+            var capyGeneration = -1
             var previousApps: Set<String> = []
             while !Task.isCancelled {
                 guard let self else { return }
@@ -35,6 +38,8 @@ final class ClaudeDesktopMonitor {
                     do { next += try await self.codexReader.read() }
                     catch { errors.append("Waiting for readable Codex Desktop session data.") }
                 }
+                next += capy.sessions
+                if capyGeneration != capy.generation { live = false; capyGeneration = capy.generation }
                 guard !Task.isCancelled else { return }
                 next.sort { $0.updatedAt > $1.updatedAt }
                 self.message = errors.isEmpty ? nil : errors.joined(separator: " ")
@@ -46,6 +51,7 @@ final class ClaudeDesktopMonitor {
     }
 
     func stop() {
+        capy.stop()
         task?.cancel()
         task = nil
         sessions = []

@@ -442,7 +442,10 @@ final class NotchViewModel {
     }
 
     private func desktopDidChange(_ sessions: [ClaudeDesktopSession], live: Bool) {
-        let changed = sessions.filter { previousDesktopSessions[$0.id]?.status != $0.status }
+        let changed = sessions.filter {
+            previousDesktopSessions[$0.id]?.status != $0.status ||
+            ($0.app == .capy && $0.status == .blocked && previousDesktopSessions[$0.id]?.attentionRevision != $0.attentionRevision)
+        }
         previousDesktopSessions = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
         let blocked = live ? changed.filter { $0.status == .blocked }.count : 0
         let done = live ? changed.filter { $0.status == .done }.count : 0
@@ -459,9 +462,10 @@ final class NotchViewModel {
             activeRefs: Set(sessions.filter { $0.status == .blocked }.map { $0.attentionItem.ref }))
         if blocked > 0 { soundEngine?.play(.blocked) }
         if done > 0 { soundEngine?.play(.done) }
-        if blocked > 0, presentation.allowsAutomaticOverview { showOverview() }
+        if live, changed.contains(where: { $0.status == .blocked && $0.app != .capy }),
+           presentation.allowsAutomaticOverview { showOverview() }
         if live {
-            for session in changed where session.status == .done {
+            for session in changed where session.status == .done || (session.app == .capy && session.status == .blocked) {
                 completed(session.attentionItem)
             }
         }
@@ -529,7 +533,7 @@ final class NotchViewModel {
 
     func completed(_ item: InteractionAttentionDisplayModel, at now: Date = Date()) {
         recentCompletions = recentCompletions.filter { now.timeIntervalSince($0.value) < 120 }
-        recentCompletions[item.ref] = now
+        if item.status == .done { recentCompletions[item.ref] = now }
         guard settings?.briefCompletionAlerts ?? true else {
             if settings?.autoExpandOnDone == true, presentation.allowsAutomaticOverview { showOverview() }
             return

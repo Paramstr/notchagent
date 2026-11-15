@@ -10,6 +10,8 @@ struct ClaudeDesktopSession: Identifiable, Equatable, Sendable {
     var title: String? = nil
     var app: DesktopApp = .claude
     var preview: String? = nil
+    var attentionRevision: String? = nil
+    var statusOverride: String? = nil
 
     var displayTitle: String { title ?? project }
 
@@ -24,7 +26,8 @@ struct ClaudeDesktopSession: Identifiable, Equatable, Sendable {
     }
 
     var statusText: String {
-        switch status {
+        if let statusOverride { return statusOverride }
+        return switch status {
         case .working: "Working"
         case .blocked: "Needs your input in \(app.name)"
         case .done: "Finished"

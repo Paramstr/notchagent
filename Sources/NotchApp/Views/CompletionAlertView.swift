@@ -15,7 +15,7 @@ struct CompletionAlertView: View {
                         Image(systemName: "checkmark.circle.fill").font(.system(size: 25)).foregroundStyle(.yellow)
                     }
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("\(item.agentName) finished").font(.system(size: 10, weight: .medium)).foregroundStyle(.yellow)
+                        Text(item.status == .blocked ? "\(item.agentName) needs you" : "\(item.agentName) finished").font(.system(size: 10, weight: .medium)).foregroundStyle(.yellow)
                         Text(item.title).font(.system(size: 13, weight: .semibold)).lineLimit(1)
                             .foregroundStyle(NotchPalette.primaryText)
                         if let preview = model.desktop.sessions.first(where: { $0.attentionItem.ref == item.ref })?.preview {
@@ -24,7 +24,7 @@ struct CompletionAlertView: View {
                         }
                     }
                     Spacer(minLength: 0)
-                    if let completedAt = model.recentCompletions[item.ref] {
+                    if let completedAt = model.recentCompletions[item.ref] ?? model.desktop.sessions.first(where: { $0.attentionItem.ref == item.ref })?.updatedAt {
                         ElapsedActivityLabel(since: completedAt)
                     }
                 }
@@ -36,7 +36,7 @@ struct CompletionAlertView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("\(item.title) finished. Open chat")
+            .accessibilityLabel("\(item.title). \(item.status == .blocked ? "Needs your input" : "Finished"). Open chat")
             .onHover(perform: model.hoverCompletion)
             .padding(.horizontal, 12)
             .padding(.top, topInset + 10)

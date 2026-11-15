@@ -1,3 +1,23 @@
+## Capy connection
+
+Settings → Capy accepts an API key from Capy Settings → API and stores it only
+in macOS Keychain. Use a key acting as you for personal chats and requests addressed
+to you. The integration performs GET requests to `https://api.capy.ai/api/v1` only;
+it never approves, replies or starts work. It does not extract Capy's login session.
+
+Accessible project chats are discovered with pagination every 15 seconds. Add
+individual `capy://app/thread/jam_…` or `https://capy.ai/thread/jam_…` links for chats
+outside projects. Working and input-needed chats stay visible; inactive project
+chats older than 24 hours are omitted. `needsYou`, crew requests, waiting, and failures
+raise attention cards; an observed working/waiting → idle transition signals done.
+Unknown states never count as complete. Startup/reconnect snapshots stay quiet.
+Polling can miss turns that both start and finish between polls. Connection errors
+clear Capy cards and appear in Settings; retries back off to one minute.
+
+Capy uses the same brief card, title, app icon and click-through as Claude/Codex.
+The preview shows Capy's request text when present. Completion message previews
+are not fetched. No API key or private data is committed with the fork.
+
 # Claude and Codex Desktop fork
 
 Completion pings default to a single clickable card: it expands smoothly, stays
