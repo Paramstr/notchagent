@@ -165,6 +165,7 @@ public struct InteractionAttentionDisplayModel: Identifiable, Sendable, Equatabl
                 modelName: String? = nil, workspaceLabel: String,
                 tabTitle: String = "Tab", status: RollupStatus,
                 state: PaneInteractionState?, completionSummary: String? = nil,
+                summaryOverride: String? = nil,
                 activeSince: Date? = nil, now: Date = Date(),
                 isSelected: Bool) {
         self.ref = AgentRef(sessionID: sessionID, paneID: paneID)
@@ -183,7 +184,10 @@ public struct InteractionAttentionDisplayModel: Identifiable, Sendable, Equatabl
             let seconds = max(0, now.timeIntervalSince($0))
             return seconds < 60 ? "fresh <1m" : "read \(Self.duration(from: $0, to: now)) ago"
         }
-        if let error = state?.error, !error.isEmpty {
+        if let summaryOverride {
+            stateText = status.rawValue
+            summary = Self.oneLine(summaryOverride)
+        } else if let error = state?.error, !error.isEmpty {
             stateText = "error"
             summary = Self.oneLine(error)
         } else if state?.draft.state == .stale {

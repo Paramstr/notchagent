@@ -3,6 +3,7 @@ import SwiftUI
 
 struct AttentionListView: View {
     let items: [InteractionAttentionDisplayModel]
+    var recentCompletions: [AgentRef: Date] = [:]
     let select: (AgentRef) -> Void
     let jump: (AgentRef) -> Void
     @State private var hoveredRef: AgentRef?
@@ -28,6 +29,7 @@ struct AttentionListView: View {
                             ? NotchPalette.hover : NotchPalette.elevated))
                 .overlay(RoundedRectangle(cornerRadius: 9).stroke(
                     hoveredRef == item.ref ? NotchPalette.hairline : .clear))
+                .modifier(RecentCompletionGlow(completedAt: recentCompletions[item.ref]))
                 .onHover { hovering in
                     hoveredRef = hovering ? item.ref
                         : hoveredRef == item.ref ? nil : hoveredRef

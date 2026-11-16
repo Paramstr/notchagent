@@ -79,6 +79,12 @@ final class NotchSurfaceState {
         isCompactHovered = false
     }
 
+    func prepareCompletion() {
+        guard sizingIdentity != "completion" else { return }
+        sizingIdentity = "completion"
+        seedExpandedHeight(geometry.topContentInset + 128)
+    }
+
     func prepareOverview(estimatedHeight: CGFloat) {
         guard sizingIdentity != "overview" else { return }
         sizingIdentity = "overview"

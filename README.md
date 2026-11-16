@@ -1,3 +1,61 @@
+## Capy connection
+
+Settings → Capy accepts an API key from Capy Settings → API and stores it only
+in macOS Keychain. Use a key acting as you for personal chats and requests addressed
+to you. The integration performs GET requests to `https://api.capy.ai/api/v1` only;
+it never approves, replies or starts work. It does not extract Capy's login session.
+
+Accessible project chats are discovered with pagination every 15 seconds. Add
+individual `capy://app/thread/jam_…` or `https://capy.ai/thread/jam_…` links for chats
+outside projects. All chats expire after 6 hours without activity, including working and input-needed
+chats and manually added links. `needsYou`, crew requests, waiting, and failures
+raise attention cards; an observed working/waiting → idle transition signals done.
+Unknown states never count as complete. Startup/reconnect snapshots stay quiet.
+Polling can miss turns that both start and finish between polls. Connection errors
+clear Capy cards and appear in Settings; retries back off to one minute.
+
+Capy uses the same brief card, title, app icon and click-through as Claude/Codex.
+The preview shows Capy's request text when present. Completion message previews
+are not fetched. No API key or private data is committed with the fork.
+
+# Claude and Codex Desktop fork
+
+Completion pings default to a single clickable card: it expands smoothly, stays
+for three seconds after settling, then collapses. Hover pauses dismissal; queued
+completions appear one at a time. Manually opened views stay put. Cards for agents
+that completed in the last two minutes carry a soft yellow outline that fades.
+Settings → Brief completion alerts toggles this behavior; disabling it exposes
+the previous full-overview option.
+
+This fork monitors recent local Claude Code and Codex Desktop chats alongside Herdr.
+Cards show the conversation title, the original app icon, status, and the last
+240 characters of the latest available assistant message. Click anywhere on a
+card to open the exact conversation in its desktop app.
+
+Codex is read through its local SQLite state/history databases in read-only mode;
+only recent, unarchived desktop threads are included, excluding subagents. Claude
+uses local status logs, session metadata and a bounded tail of its transcript.
+Tool output and reasoning are excluded from previews. No hooks are installed.
+Previews are visible in the notch; titles may also appear in notifications.
+Settings → Desktop agents disables this monitoring. Replies and approvals stay
+in the original app. Claude Chat/Cowork, cloud and remote sessions are unsupported.
+These local formats and native continuation links may change with app updates.
+
+Build with `VERSION=0.7.4 ./bundle.sh`, then open `build/NotchApp.app`.
+The fork uses bundle ID `dev.notchagent.ClaudeDesktopFork` and ad-hoc signing.
+Upstream update suggestions are disabled to avoid overwriting the fork.
+
+Claude status observations expire after 6 hours and become unconfirmed after
+30 minutes. Codex includes up to 30 desktop chats updated within 6 hours, using
+its latest recorded turn state; this does not detect every approval prompt.
+Startup history does not trigger sounds. App icons come from the installed bundles.
+Native links are `claude://code/continue?session=…` and `codex://threads/…`.
+
+Validation: `swift test`; synthetic fixtures cover parser, metadata, SQL filtering,
+message previews and link validation. No private chat data is committed.
+
+---
+
 # NotchAgent
 
 A native macOS notch control surface for AI coding agents running under

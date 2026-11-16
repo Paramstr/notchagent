@@ -36,7 +36,10 @@ struct PlaceholderNotchView: View {
                 .scaleEffect(isCompact ? 1 : 0.92, anchor: .top)
                 .allowsHitTesting(isCompact)
 
-            if surface.presentation.isExpanded {
+            if surface.presentation == .completion {
+                CompletionAlertView(model: model, topInset: surface.geometry.topContentInset)
+                    .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+            } else if surface.presentation.isExpanded {
                 TimelineView(.periodic(from: .now, by: 15)) { context in
                     let snapshot = model.displaySnapshot(at: context.date)
                     ExpandedNotchSurface(
@@ -127,8 +130,8 @@ private struct CompactNotchSummary: View {
     }
 
     private var helpText: String {
-        guard let version = pendingUpdateVersion else { return "herdr agents — click to expand" }
-        return "herdr agents — NotchAgent \(version) is available"
+        guard let version = pendingUpdateVersion else { return "Coding agents — click to expand" }
+        return "Coding agents — NotchAgent \(version) is available"
     }
 
     private var accessibilityText: String {

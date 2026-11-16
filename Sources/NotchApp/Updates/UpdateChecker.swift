@@ -81,7 +81,8 @@ final class UpdateChecker {
     /// A development build has nothing to be behind, and an unversioned bundle
     /// has nothing to compare against.
     var isSupported: Bool {
-        currentVersion != nil && (origin != .development || feedOverridden)
+        Bundle.main.object(forInfoDictionaryKey: "NotchAgentDesktopFork") as? Bool != true
+            && currentVersion != nil && (origin != .development || feedOverridden)
     }
 
     var currentVersionText: String { currentVersion.map(\.rawValue) ?? "development build" }

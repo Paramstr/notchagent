@@ -20,6 +20,7 @@ struct NotchFocusContext: Sendable, Equatable {
 enum NotchPresentation: Sendable, Equatable {
     case compact
     case overview
+    case completion
     case focused(NotchFocusContext)
 
     var isExpanded: Bool { self != .compact }

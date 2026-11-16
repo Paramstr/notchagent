@@ -113,6 +113,7 @@ jobs:
           fi
 
       - name: Check out Homebrew tap
+        if: github.repository == 'ykushch/notchagent'
         uses: actions/checkout@v6
         with:
           repository: ykushch/homebrew-tap
@@ -120,6 +121,7 @@ jobs:
           path: homebrew-tap
 
       - name: Update Homebrew cask
+        if: github.repository == 'ykushch/notchagent'
         env:
           VERSION: ${{ steps.version.outputs.version }}
           SHA256: ${{ steps.archive.outputs.sha256 }}
@@ -136,6 +138,7 @@ jobs:
           git -C homebrew-tap diff --check
 
       - name: Push Homebrew cask update
+        if: github.repository == 'ykushch/notchagent'
         env:
           VERSION: ${{ steps.version.outputs.version }}
         shell: bash

@@ -10,7 +10,7 @@ extension NotchViewModel {
         ScreenSaveSnapshot(
             generatedAt: now,
             connection: connection.screenSaveConnection,
-            agents: attentionItems(at: now).map { item in
+            agents: (attentionItems(at: now) + desktop.sessions.map(\.attentionItem)).map { item in
                 ScreenSaveAgentSnapshot(
                     id: item.id,
                     sessionLabel: item.sessionLabel,

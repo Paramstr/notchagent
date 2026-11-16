@@ -11,7 +11,7 @@ cd "$(dirname "$0")"
 CONFIG="${1:-release}"
 VERSION="${VERSION:-0.1}"
 APP="NotchApp"
-BUNDLE_ID="dev.notchagent.NotchApp"
+BUNDLE_ID="dev.notchagent.ClaudeDesktopFork"
 OUT="build/${APP}.app"
 SIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
 ENABLE_TIME_SENSITIVE_NOTIFICATIONS="${ENABLE_TIME_SENSITIVE_NOTIFICATIONS:-false}"
@@ -74,8 +74,9 @@ cat > "$OUT/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NotchAgentDesktopFork</key> <true/>
     <key>CFBundleName</key>                <string>${APP}</string>
-    <key>CFBundleDisplayName</key>         <string>Notch Agent</string>
+    <key>CFBundleDisplayName</key>         <string>Notch Agent Desktop</string>
     <key>CFBundleIdentifier</key>          <string>${BUNDLE_ID}</string>
     <key>CFBundleVersion</key>             <string>${BUILD_NUMBER}</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
