@@ -22,7 +22,7 @@ actor CapyAPIClient {
                 let page: CapyAPIPage<CapyThread> = try await get("threads", query: query, key: key)
                 for thread in page.items {
                     if let value = thread.session(previous: old[thread.id], project: project.name),
-                       value.status == .working || value.status == .blocked || Date().timeIntervalSince(value.updatedAt) < 86400 {
+                       DesktopActivityWindow.contains(value.updatedAt) {
                         threads[value.id] = value
                     }
                 }
@@ -35,7 +35,7 @@ actor CapyAPIClient {
             let thread: CapyThread = try await get("threads/" + id, key: key)
             if let value = thread.session(previous: old[id], project: "Capy") { threads[id] = value }
         }
-        return threads.values.sorted { $0.updatedAt > $1.updatedAt }
+        return threads.values.filter { DesktopActivityWindow.contains($0.updatedAt) }.sorted { $0.updatedAt > $1.updatedAt }
     }
     private func get<T: Decodable>(_ path: String, query: [URLQueryItem] = [], key: String) async throws -> T {
         var url = URLComponents(string: "https://api.capy.ai/api/v1/" + path)!

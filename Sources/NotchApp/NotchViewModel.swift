@@ -442,7 +442,7 @@ final class NotchViewModel {
     }
 
     private func desktopDidChange(_ sessions: [ClaudeDesktopSession], live: Bool) {
-        let changed = sessions.filter {
+        let changed = sessions.filter { Date().timeIntervalSince($0.updatedAt) < 120 }.filter {
             previousDesktopSessions[$0.id]?.status != $0.status ||
             ($0.app == .capy && $0.status == .blocked && previousDesktopSessions[$0.id]?.attentionRevision != $0.attentionRevision)
         }
@@ -466,7 +466,7 @@ final class NotchViewModel {
            presentation.allowsAutomaticOverview { showOverview() }
         if live {
             for session in changed where session.status == .done || (session.app == .capy && session.status == .blocked) {
-                completed(session.attentionItem)
+                completed(session.attentionItem, at: session.updatedAt)
             }
         }
     }

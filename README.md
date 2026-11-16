@@ -7,8 +7,8 @@ it never approves, replies or starts work. It does not extract Capy's login sess
 
 Accessible project chats are discovered with pagination every 15 seconds. Add
 individual `capy://app/thread/jam_…` or `https://capy.ai/thread/jam_…` links for chats
-outside projects. Working and input-needed chats stay visible; inactive project
-chats older than 24 hours are omitted. `needsYou`, crew requests, waiting, and failures
+outside projects. All chats expire after 6 hours without activity, including working and input-needed
+chats and manually added links. `needsYou`, crew requests, waiting, and failures
 raise attention cards; an observed working/waiting → idle transition signals done.
 Unknown states never count as complete. Startup/reconnect snapshots stay quiet.
 Polling can miss turns that both start and finish between polls. Connection errors
@@ -45,8 +45,8 @@ Build with `VERSION=0.7.4 ./bundle.sh`, then open `build/NotchApp.app`.
 The fork uses bundle ID `dev.notchagent.ClaudeDesktopFork` and ad-hoc signing.
 Upstream update suggestions are disabled to avoid overwriting the fork.
 
-Claude status observations expire after 24 hours and become unconfirmed after
-30 minutes. Codex includes up to 30 desktop chats updated within 24 hours, using
+Claude status observations expire after 6 hours and become unconfirmed after
+30 minutes. Codex includes up to 30 desktop chats updated within 6 hours, using
 its latest recorded turn state; this does not detect every approval prompt.
 Startup history does not trigger sounds. App icons come from the installed bundles.
 Native links are `claude://code/continue?session=…` and `codex://threads/…`.

@@ -41,6 +41,7 @@ final class ClaudeDesktopMonitor {
                 next += capy.sessions
                 if capyGeneration != capy.generation { live = false; capyGeneration = capy.generation }
                 guard !Task.isCancelled else { return }
+                next = next.filter { DesktopActivityWindow.contains($0.updatedAt) }
                 next.sort { $0.updatedAt > $1.updatedAt }
                 self.message = errors.isEmpty ? nil : errors.joined(separator: " ")
                 if next != self.sessions { self.sessions = next; onChange(next, live) }

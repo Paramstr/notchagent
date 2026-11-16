@@ -44,7 +44,7 @@ struct ClaudeDesktopLogState: Sendable {
     }
 
     mutating func prune(at now: Date) {
-        sessions = sessions.filter { now.timeIntervalSince($0.value.updatedAt) < 24 * 60 * 60 }
+        sessions = sessions.filter { DesktopActivityWindow.contains($0.value.updatedAt, at: now) }
         permissions = permissions.filter { sessions[$0.value] != nil }
         // Logs have no heartbeat. Never assert that an old observation is live.
         for id in Array(sessions.keys) {

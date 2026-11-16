@@ -39,13 +39,14 @@ struct DesktopPreviewTests {
         try create("state_5.sqlite", """
             CREATE TABLE threads(id TEXT,title TEXT,cwd TEXT,updated_at INTEGER,archived INTEGER,source TEXT,name TEXT);
             INSERT INTO threads VALUES('\(id)','Example chat','/tmp/project',\(timestamp),0,'vscode','Renamed conversation');
+            INSERT INTO threads VALUES('\(UUID().uuidString)','Expired','/tmp/project',\(timestamp - 21601),0,'vscode',NULL);
             INSERT INTO threads VALUES('invalid','Hidden child','/tmp/project',\(timestamp),0,'subagent',NULL);
             INSERT INTO threads VALUES('\(UUID().uuidString)','Archived','/tmp/project',\(timestamp),1,'vscode',NULL);
             """)
         try create("thread_history_1.sqlite", """
-            CREATE TABLE thread_turns(thread_id TEXT,status TEXT,rollout_ordinal INTEGER);
+            CREATE TABLE thread_turns(thread_id TEXT,status TEXT,rollout_ordinal INTEGER,started_at INTEGER,completed_at INTEGER);
             CREATE TABLE thread_items(thread_id TEXT,item_type TEXT,item_json TEXT,rollout_ordinal INTEGER);
-            INSERT INTO thread_turns VALUES('\(id)','inProgress',1);
+            INSERT INTO thread_turns VALUES('\(id)','inProgress',1,\(timestamp),NULL);
             INSERT INTO thread_items VALUES('\(id)','agentMessage','{"text":"Latest assistant reply"}',2);
             INSERT INTO thread_items VALUES('\(id)','reasoning','{"text":"Do not show this"}',3);
             """)

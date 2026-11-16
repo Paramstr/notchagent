@@ -61,7 +61,7 @@ actor ClaudeDesktopLogReader {
             guard line.count >= 19,
                   let date = formatter.date(from: String(line.prefix(19))),
                   date <= now.addingTimeInterval(60),
-                  now.timeIntervalSince(date) < 24 * 60 * 60 else { continue }
+                  DesktopActivityWindow.contains(date, at: now) else { continue }
             state.consume(line, at: date)
         }
         if partial.count > 64 * 1024 { partial = Data() }

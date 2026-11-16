@@ -24,7 +24,7 @@ struct CompletionAlertView: View {
                         }
                     }
                     Spacer(minLength: 0)
-                    if let completedAt = model.recentCompletions[item.ref] ?? model.desktop.sessions.first(where: { $0.attentionItem.ref == item.ref })?.updatedAt {
+                    if let completedAt = model.desktop.sessions.first(where: { $0.attentionItem.ref == item.ref })?.updatedAt ?? model.recentCompletions[item.ref] {
                         ElapsedActivityLabel(since: completedAt)
                     }
                 }

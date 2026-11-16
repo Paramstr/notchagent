@@ -37,9 +37,7 @@ struct ClaudeDesktopSection: View {
                                 .font(.system(size: 9)).foregroundStyle(NotchPalette.tertiaryText)
                         }
                         Spacer()
-                        ElapsedActivityLabel(since: session.status == .done
-                            ? recentCompletions[session.attentionItem.ref] ?? session.updatedAt
-                            : session.updatedAt)
+                        ElapsedActivityLabel(since: session.updatedAt)
                     }
                     .padding(10)
                     .background(RoundedRectangle(cornerRadius: 9).fill(NotchPalette.elevated))

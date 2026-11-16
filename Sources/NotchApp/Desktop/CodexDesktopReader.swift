@@ -8,22 +8,25 @@ actor CodexDesktopReader {
     init(root: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex")) { self.root = root }
     func read(at now: Date = Date()) throws -> [ClaudeDesktopSession] {
         let rows = try query(root.appendingPathComponent("state_5.sqlite"), sql:
-            "SELECT id,COALESCE(NULLIF(name,''),title),cwd,updated_at FROM threads WHERE archived=0 AND source='vscode' AND updated_at > \(Int(now.timeIntervalSince1970)-86400) ORDER BY updated_at DESC LIMIT 30")
+            "SELECT id,COALESCE(NULLIF(name,''),title),cwd,updated_at FROM threads WHERE archived=0 AND source='vscode' AND updated_at > \(Int(now.timeIntervalSince1970)-Int(DesktopActivityWindow.duration)) ORDER BY updated_at DESC LIMIT 30")
         let history = root.appendingPathComponent("thread_history_1.sqlite")
         return rows.compactMap { row in
             guard row.count == 4, UUID(uuidString: row[0]) != nil, let timestamp = Double(row[3]) else { return nil }
             let id = row[0]
-            let turns = try? query(history, sql: "SELECT status FROM thread_turns WHERE thread_id=? ORDER BY rollout_ordinal DESC LIMIT 1", id: id)
+            let turns = try? query(history, sql: "SELECT status,COALESCE(completed_at,started_at,0) FROM thread_turns WHERE thread_id=? ORDER BY rollout_ordinal DESC LIMIT 1", id: id)
             let messages = try? query(history, sql: "SELECT item_json FROM thread_items WHERE thread_id=? AND item_type='agentMessage' ORDER BY rollout_ordinal DESC LIMIT 1", id: id)
+            let turnTimestamp = turns?.first.flatMap { $0.count > 1 ? Double($0[1]) : nil } ?? 0
+            let activityDate = Date(timeIntervalSince1970: max(timestamp, turnTimestamp))
+            guard DesktopActivityWindow.contains(activityDate, at: now) else { return nil }
             let status: RollupStatus
             switch turns?.first?.first {
-            case "inProgress": status = now.timeIntervalSince1970 - timestamp < 1800 ? .working : .unknown
+            case "inProgress": status = now.timeIntervalSince(activityDate) < 1800 ? .working : .unknown
             case "completed": status = .done
             case "interrupted", "failed": status = .idle
             default: status = .unknown
             }
             var session = ClaudeDesktopSession(id: id, project: URL(fileURLWithPath: row[2]).lastPathComponent,
-                status: status, updatedAt: Date(timeIntervalSince1970: timestamp), title: row[1], app: .codex)
+                status: status, updatedAt: activityDate, title: row[1], app: .codex)
             if let json = messages?.first?.first, let data = json.data(using: .utf8),
                let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let text = object["text"] as? String { session.preview = AssistantPreview.excerpt(text) }
